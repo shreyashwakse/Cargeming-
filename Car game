@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Street Racer Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+            overflow: hidden;
+        }
+
+        /* Game Container Layout (Mobile-first, vertically centered) */
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            max-height: 900px;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* Road/Game Area */
+        .road {
+            position: relative;
+            width: 100%;
+            height: 80%;
+            background-color: #3b3b54;
+            border-left: 6px solid #f1c40f;
+            border-right: 6px solid #f1c40f;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Road Markings - Animated dashed lines */
+        .road-line {
+            position: absolute;
+            width: 8px;
+            background-color: white;
+            opacity: 0.7;
+            border-radius: 4px;
+            z-index: 0;
+        }
+
+        /* Player and Enemy Car Styles */
+        .car {
+            position: absolute;
+            width: 50px;
+            height: 80px;
+            border-radius: 8px;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.4);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            box-sizing: border-box;
+            transition: background-color 0.1s;
+        }
+
+        .car-light {
+            width: 10px;
+            height: 5px;
+            background-color: #ffeaa7;
+            border-radius: 2px;
+            box-shadow: 0 0 5px #ffeaa7;
+        }
+
+        .car-windshield {
+            width: 30px;
+            height: 15px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 3px;
+        }
+
+        /* Player Car Specific Style */
+        .player-car {
+            bottom: 20px;
+            background: linear-gradient(145deg, #2ecc71, #1abc9c);
+            box-shadow: 0 4px 0 #1abc9c, inset 0 0 10px rgba(255, 255, 255, 0.4);
+        }
+
+        /* Enemy Car Specific Style */
+        .enemy-car {
+            top: -100px;
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            border: 2px solid #e74c3c;
+        }
+
+        /* Dashboard and Controls */
+        .dashboard, .controls {
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 10px;
+            background-color: #1a1a2e;
+            box-sizing: border-box;
+        }
+
+        .dashboard {
+            height: 10%;
+            border-bottom: 2px solid #34495e;
+            justify-content: space-between;
+            padding: 10px 20px;
+        }
+
+        .controls {
+            height: 10%;
+            gap: 8px;
+        }
+
+        .score-display, .speed-display {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #74b9ff;
+            text-shadow: 0 0 5px rgba(116, 185, 255, 0.5);
+        }
+
+        /* Button Styling (for mobile controls) */
+        .control-btn {
+            background-color: #34495e;
+            color: white;
+            border: none;
+            padding: 12px 0;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px #2c3e50;
+            flex: 1;
+            max-width: 100px;
+            text-transform: uppercase;
+        }
+
+        .control-btn:active {
+            box-shadow: 0 1px #2c3e50;
+            transform: translateY(3px);
+            background-color: #4b6584;
+        }
+
+        /* Game Over Modal */
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            text-align: center;
+        }
+
+        #game-over-screen h2 {
+            font-size: 3rem;
+            color: #e74c3c;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #e74c3c;
+        }
+
+        #game-over-screen p {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            color: #bdc3c7;
+        }
+
+        #restart-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px #2980b9;
+        }
+
+        #restart-btn:hover {
+            background-color: #5dade2;
+        }
+
+        #restart-btn:active {
+            box-shadow: 0 2px #2980b9;
+            transform: translateY(4px);
+        }
+
+        /* Media Query for Desktop/Larger Screens */
+        @media (min-width: 600px) {
+            .game-wrapper {
+                height: 80vh;
+                max-height: 800px;
+            }
+            .road {
+                height: 90%;
+            }
+            .controls {
+                display: none;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="game-wrapper">
+    <div class="dashboard">
+        <div class="score-display">SCORE: <span id="score">0</span></div>
+        <div class="speed-display">SPEED: <span id="speed">1.0</span>X</div>
+    </div>
+
+    <div class="road" id="road">
+        <!-- The player car element must exist in the HTML for the class to find it -->
+        <div id="player-car" class="car player-car">
+            <div class="car-light"></div>
+            <div class="car-windshield"></div>
+            <div class="car-light"></div>
+        </div>
+
+        <div id="game-over-screen">
+            <h2>CRASH!</h2>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <button id="restart-btn">RESTART RACE</button>
+        </div>
+    </div>
+
+    <!-- Mobile Touch Controls -->
+    <div class="controls">
+        <button class="control-btn" id="left-btn">LEFT</button>
+        <button class="control-btn" id="right-btn">RIGHT</button>
+        <button class="control-btn" id="accel-btn">ACCEL</button>
+        <button class="control-btn" id="brake-btn">BRAKE</button>
+    </div>
+</div>
+
+<script>
+    // --- Configuration Constants ---
+    const CONFIG = {
+        PLAYER_SPEED_HORIZONTAL: 4,
+        INITIAL_GAME_SPEED: 1,
+        MAX_GAME_SPEED: 4.5,
+        ACCELERATION_RATE: 0.02,
+        ENEMY_SPEED_MULTIPLIER: 2,
+        ENEMY_SPAWN_INTERVAL: 180,
+        SCORE_INCREMENT_RATE: 0.1,
+        CAR_WIDTH: 50,
+        CAR_HEIGHT: 80
+    };
+
+    // --- Utility Function for Collision Detection ---
+    function checkCollision(rect1, rect2) {
+        return (
+            rect1.x < rect2.x + rect2.width &&
+            rect1.x + rect1.width > rect2.x &&
+            rect1.y < rect2.y + rect2.height &&
+            rect1.y + rect1.height > rect2.y
+        );
+    }
+
+    // --- Class for Road Elements (Lines) ---
+    class RoadLine {
+        constructor(y, roadElement) {
+            this.height = 80;
+            this.interval = 120;
+            this.y = y;
+
+            this.element = document.createElement('div');
+            this.element.className = 'road-line';
+            this.element.style.height = `${this.height}px`;
+            this.element.style.top = `${this.y}px`;
+            roadElement.appendChild(this.element);
+        }
+
+        update(movement) {
+            this.y += movement;
+            this.element.style.top = `${this.y}px`;
+        }
+
+        remove() {
+            this.element.remove();
+        }
+    }
+
+    // --- Class for Game Vehicles (Player and Enemies) ---
+    class Vehicle {
+        constructor(isPlayer, initialX, initialY, roadElement) {
+            this.isPlayer = isPlayer;
+            this.width = CONFIG.CAR_WIDTH;
+            this.height = CONFIG.CAR_HEIGHT;
+            this.x = initialX;
+            this.y = initialY;
+            this.roadElement = roadElement;
+
+            // Get existing player element or create a new enemy element
+            this.element = isPlayer ? document.getElementById('player-car') : this.createEnemyElement();
+            if (!this.element) {
+                console.error("Vehicle initialization failed: Car element not found.");
+                return;
+            }
+
+            this.element.style.left = `${this.x}px`;
+            this.element.style.top = `${this.y}px`;
+        }
+
+        createEnemyElement() {
+            const enemy = document.createElement('div');
+            enemy.className = 'car enemy-car';
+            enemy.innerHTML = `
+                <div class="car-light" style="background-color: white;"></div>
+                <div class="car-windshield" style="background-color: rgba(0,0,0,0.8);"></div>
+                <div class="car-light" style="background-color: white;"></div>
+            `;
+            this.roadElement.appendChild(enemy);
+            return enemy;
+        }
+
+        moveVertical(movement) {
+            this.y += movement;
+            this.element.style.top = `${this.y}px`;
+        }
+
+        moveHorizontal(direction, roadWidth) {
+            const dx = direction * CONFIG.PLAYER_SPEED_HORIZONTAL;
+            this.x += dx;
+
+            const minX = 6;
+            const maxX = roadWidth - this.width - 6;
+            this.x = Math.max(minX, Math.min(maxX, this.x));
+
+            this.element.style.left = `${this.x}px`;
+        }
+
+        getRect() {
+            return { x: this.x, y: this.y, width: this.width, height: this.height };
+        }
+
+        remove() {
+            if (!this.isPlayer && this.element) {
+                this.element.remove();
+            }
+        }
+    }
+
+
+    // --- Game Controller Class ---
+    class GameController {
+        constructor() {
+            // DOM Elements
+            this.road = document.getElementById('road');
+            this.scoreDisplay = document.getElementById('score');
+            this.speedDisplay = document.getElementById('speed');
+            this.gameOverScreen = document.getElementById('game-over-screen');
+            this.finalScoreDisplay = document.getElementById('final-score');
+            this.restartBtn = document.getElementById('restart-btn');
+
+            // Game State
+            this.playing = false;
+            this.score = 0;
+            this.currentSpeed = CONFIG.INITIAL_GAME_SPEED;
+            this.keysPressed = {};
+            this.enemies = [];
+            this.roadLines = [];
+            this.frameCounter = 0;
+            this.player = null;
+
+            this.restartBtn.addEventListener('click', () => this.init());
+
+            // Initial setup
+            this.setupTouchControls();
+            window.addEventListener('keydown', (e) => this.handleKeyDown(e));
+            window.addEventListener('keyup', (e) => this.handleKeyUp(e));
+            window.addEventListener('resize', () => this.handleResize());
+            this.init();
+        }
+
+        getRoadWidth() { return this.road ? this.road.clientWidth : 0; }
+        getRoadHeight() { return this.road ? this.road.clientHeight : 0; }
+        getDisplayScore() { return Math.floor(this.score); }
+
+        init() {
+            // Cleanup previous game elements
+            this.enemies.forEach(e => e.remove());
+            this.roadLines.forEach(l => l.remove());
+            this.enemies = [];
+            this.roadLines = [];
+
+            // Reset state
+            this.playing = true;
+            this.score = 0;
+            this.currentSpeed = CONFIG.INITIAL_GAME_SPEED;
+            this.keysPressed = {};
+            this.frameCounter = 0;
+
+            // Initialize Player Car
+            const roadWidth = this.getRoadWidth();
+            const roadHeight = this.getRoadHeight();
+            const playerX = roadWidth / 2 - CONFIG.CAR_WIDTH / 2;
+            const playerY = roadHeight - CONFIG.CAR_HEIGHT - 20;
+            this.player = new Vehicle(true, playerX, playerY, this.road);
+
+            // Reset UI
+            if (this.scoreDisplay) this.scoreDisplay.textContent = '0';
+            if (this.speedDisplay) this.speedDisplay.textContent = this.currentSpeed.toFixed(1) + 'X';
+            if (this.gameOverScreen) this.gameOverScreen.style.display = 'none';
+
+            // Generate initial road lines
+            const lineInterval = 120;
+            const lineHeight = 80;
+            for (let y = -lineHeight; y < roadHeight + lineHeight; y += lineInterval) {
+                this.roadLines.push(new RoadLine(y, this.road));
+            }
+
+            // Start the loop
+            requestAnimationFrame(this.gameLoop.bind(this));
+        }
+
+        gameOver() {
+            this.playing = false;
+            if (this.finalScoreDisplay) this.finalScoreDisplay.textContent = this.getDisplayScore();
+            if (this.gameOverScreen) this.gameOverScreen.style.display = 'flex';
+
+            // Visually indicate game over
+            this.enemies.forEach(e => {
+                if(e.element) e.element.style.opacity = '0.5';
+            });
+        }
+
+        updatePlayer() {
+            if (!this.player) return;
+
+            const roadWidth = this.getRoadWidth();
+            let horizontalDirection = 0;
+
+            if (this.keysPressed['ArrowLeft'] || this.keysPressed['Left']) horizontalDirection = -1;
+            if (this.keysPressed['ArrowRight'] || this.keysPressed['Right']) horizontalDirection = 1;
+
+            if (horizontalDirection !== 0) {
+                this.player.moveHorizontal(horizontalDirection, roadWidth);
+            }
+
+            if (this.keysPressed['ArrowUp'] || this.keysPressed['Up']) {
+                this.currentSpeed = Math.min(CONFIG.MAX_GAME_SPEED, this.currentSpeed + CONFIG.ACCELERATION_RATE);
+            } else if (this.keysPressed['ArrowDown'] || this.keysPressed['Down']) {
+                this.currentSpeed = Math.max(CONFIG.INITIAL_GAME_SPEED, this.currentSpeed - CONFIG.ACCELERATION_RATE * 2);
+            }
+
+            if (this.speedDisplay) this.speedDisplay.textContent = this.currentSpeed.toFixed(1) + 'X';
+        }
+
+        updateRoadLines() {
+            const movement = this.currentSpeed * CONFIG.ENEMY_SPEED_MULTIPLIER;
+            const roadHeight = this.getRoadHeight();
+            const lineInterval = 120;
+            const lineHeight = 80;
+
+            this.roadLines.forEach(line => line.update(movement));
+
+            this.roadLines = this.roadLines.filter(line => {
+                if (line.y > roadHeight) {
+                    line.remove();
+                    return false;
+                }
+                return true;
+            });
+
+            const lastLine = this.roadLines[this.roadLines.length - 1];
+            if (!lastLine || lastLine.y > lineInterval - lineHeight) {
+                this.roadLines.push(new RoadLine(-lineHeight, this.road));
+            }
+        }
+
+        spawnEnemy() {
+            const roadWidth = this.getRoadWidth();
+            const minX = 6;
+            const maxX = roadWidth - CONFIG.CAR_WIDTH - 6;
+            const x = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
+
+            this.enemies.push(new Vehicle(false, x, -CONFIG.CAR_HEIGHT, this.road));
+        }
+
+        updateEnemies() {
+            if (!this.player) return;
+
+            const movement = this.currentSpeed * CONFIG.ENEMY_SPEED_MULTIPLIER;
+            const roadHeight = this.getRoadHeight();
+            const playerRect = this.player.getRect();
+
+            for (let i = this.enemies.length - 1; i >= 0; i--) {
+                const enemy = this.enemies[i];
+                enemy.moveVertical(movement);
+
+                if (checkCollision(playerRect, enemy.getRect())) {
+                    this.gameOver();
+                    return;
+                }
+
+                if (enemy.y > roadHeight) {
+                    enemy.remove();
+                    this.enemies.splice(i, 1);
+                }
+            }
+
+            const spawnRate = Math.max(30, CONFIG.ENEMY_SPAWN_INTERVAL - this.currentSpeed * 15);
+            if (this.frameCounter % spawnRate === 0) {
+                this.spawnEnemy();
+            }
+        }
+
+        updateScore() {
+            this.score += this.currentSpeed * CONFIG.SCORE_INCREMENT_RATE;
+            if (this.scoreDisplay) this.scoreDisplay.textContent = this.getDisplayScore();
+        }
+
+        gameLoop() {
+            if (!this.playing) {
+                return;
+            }
+
+            try {
+                this.updatePlayer();
+                this.updateRoadLines();
+                this.updateEnemies();
+                this.updateScore();
+            } catch (e) {
+                console.error("Game Loop Error:", e);
+                this.gameOver();
+                return;
+            }
+
+
+            this.frameCounter++;
+            requestAnimationFrame(this.gameLoop.bind(this));
+        }
+
+        // --- Input Handling ---
+
+        handleKeyDown(event) {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+                event.preventDefault();
+            }
+            this.keysPressed[event.key] = true;
+        }
+
+        handleKeyUp(event) {
+            this.keysPressed[event.key] = false;
+        }
+
+        setupTouchControls() {
+            const buttonMap = {
+                'left-btn': 'ArrowLeft',
+                'right-btn': 'ArrowRight',
+                'accel-btn': 'ArrowUp',
+                'brake-btn': 'ArrowDown'
+            };
+
+            const buttons = document.querySelectorAll('.control-btn');
+
+            buttons.forEach(button => {
+                const key = buttonMap[button.id];
+
+                const startPress = () => { if (this.playing) this.keysPressed[key] = true; };
+                const stopPress = () => { this.keysPressed[key] = false; };
+
+                button.addEventListener('mousedown', startPress);
+                button.addEventListener('mouseup', stopPress);
+                button.addEventListener('mouseleave', stopPress);
+
+                button.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    startPress();
+                }, { passive: false });
+                button.addEventListener('touchend', stopPress);
+                button.addEventListener('touchcancel', stopPress);
+            });
+        }
+
+        handleResize() {
+            if (this.playing && this.player) {
+                const playerX = this.getRoadWidth() / 2 - CONFIG.CAR_WIDTH / 2;
+                this.player.x = playerX;
+                this.player.element.style.left = `${playerX}px`;
+            }
+        }
+    }
+
+    // --- Initialization ---
+    window.onload = () => {
+        new GameController();
+    };
+</script>
+
